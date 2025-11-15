@@ -1,7 +1,11 @@
-const builtin = @import("builtin");
 const std = @import("std");
 
 const ini = @import("inizig");
+
+const is_debug = switch (@import("builtin").mode) {
+    .Debug => true,
+    .ReleaseFast, .ReleaseSmall, .ReleaseSafe => false,
+};
 
 pub fn main() !void {
     const s =
@@ -17,11 +21,11 @@ pub fn main() !void {
         \\
     ;
 
-    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-    const gpa = switch (builtin.mode) {
-        .Debug => debug_allocator.allocator(),
-        .ReleaseFast, .ReleaseSmall, .ReleaseSafe => std.heap.smp_allocator,
-    };
+    var debug_allocator: if (is_debug) std.heap.DebugAllocator(.{}) else void = if (is_debug) .init else {};
+    const gpa = if (is_debug) debug_allocator.allocator() else std.heap.smp_allocator;
+    defer {
+        if (is_debug) _ = debug_allocator.deinit();
+    }
 
     var ini_data = ini.init(gpa);
     defer ini_data.deinit();
