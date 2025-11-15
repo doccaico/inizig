@@ -1,6 +1,6 @@
 # inizig
 
-zig version 0.15.02 (tested)
+zig version 0.15.2 (tested on Windows)
 
 ## Fetch
 ```
