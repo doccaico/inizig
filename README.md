@@ -65,3 +65,13 @@ pub fn main() !void {
     std.debug.print("{s}\n", .{str});
 }
 ```
+
+## How to run tests
+```
+$ zig build test
+```
+
+## How to run the example
+```
+$ zig build run
+```
