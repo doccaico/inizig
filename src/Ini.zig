@@ -32,10 +32,6 @@ pub fn setSection(self: *Ini, name: []const u8) !void {
     try self.sections.put(name, section);
 }
 
-pub fn getSection(self: Ini, name: []const u8) ?Section {
-    return self.sections.get(name);
-}
-
 pub fn countSection(self: Ini) std.StringHashMap(Section).Size {
     return self.sections.count();
 }
@@ -49,19 +45,17 @@ pub fn deleteSection(self: *Ini, name: []const u8) bool {
 }
 
 pub fn countProperty(self: Ini, sectionName: []const u8) !std.StringHashMap(Section).Size {
-    if (!self.hasSection(sectionName)) {
-        return error.SectionNotFound;
+    if (self.sections.get(sectionName)) |section| {
+        return section.countProperty();
     }
-    const section = self.getSection(sectionName).?;
-    return section.properties.count();
+    return error.SectionNotFound;
 }
 
 pub fn hasProperty(self: Ini, sectionName: []const u8, key: []const u8) bool {
-    if (!self.hasSection(sectionName)) {
-        return false;
+    if (self.sections.get(sectionName)) |section| {
+        return section.hasProperty(key);
     }
-    const section = self.getSection(sectionName).?;
-    return section.hasProperty(key);
+    return false;
 }
 
 pub fn setProperty(self: Ini, sectionName: []const u8, key: []const u8, value: []const u8) !void {
@@ -73,11 +67,10 @@ pub fn setProperty(self: Ini, sectionName: []const u8, key: []const u8, value: [
 }
 
 pub fn getProperty(self: Ini, sectionName: []const u8, key: []const u8) !?[]const u8 {
-    if (!self.hasSection(sectionName)) {
-        return error.SectionNotFound;
+    if (self.sections.get(sectionName)) |section| {
+        return section.getProperty(key);
     }
-    const section = self.getSection(sectionName).?;
-    return section.getProperty(key);
+    return error.SectionNotFound;
 }
 
 pub fn deleteProperty(self: *Ini, sectionName: []const u8, key: []const u8) !bool {
@@ -142,7 +135,7 @@ pub fn stringify(self: Ini) ![]u8 {
     while (section_key_iterator.next()) |section_key| {
         try writer.print("[{s}]\n", .{section_key.*});
 
-        const section = self.getSection(section_key.*).?;
+        const section = self.sections.get(section_key.*).?;
 
         var property_iterator = section.properties.iterator();
         while (property_iterator.next()) |entry| {
@@ -152,17 +145,13 @@ pub fn stringify(self: Ini) ![]u8 {
     return try wa.toOwnedSlice();
 }
 
-test "Ini (public)" {
+test "ini" {
     var ini = Ini.init(std.testing.allocator);
     defer ini.deinit();
 
     // setSection
     try ini.setSection("Person");
     try std.testing.expectError(error.DuplicatedSection, ini.setSection("Person"));
-
-    // getSection
-    try std.testing.expect(null != ini.getSection("Person"));
-    try std.testing.expectEqual(null, ini.getSection("Cat"));
 
     // countSection
     try std.testing.expectEqual(1, ini.countSection());
@@ -194,6 +183,7 @@ test "Ini (public)" {
     // hasProperty
     try std.testing.expect(ini.hasProperty("Person", "name"));
     try std.testing.expect(!ini.hasProperty("Person", "hobby"));
+    try std.testing.expect(!ini.hasProperty("Cat", "name"));
 
     // deleteProperty
     try std.testing.expectError(error.SectionNotFound, ini.deleteProperty("Cat", "name"));

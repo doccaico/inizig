@@ -29,6 +29,10 @@ pub fn hasProperty(self: Section, name: []const u8) bool {
     return self.properties.contains(name);
 }
 
+pub fn countProperty(self: Section) std.StringHashMap(Section).Size {
+    return self.properties.count();
+}
+
 pub fn deleteProperty(self: *Section, name: []const u8) bool {
     return self.properties.remove(name);
 }
